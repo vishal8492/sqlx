@@ -224,7 +224,7 @@ func bindMap(bindType int, query string, args map[string]interface{}) (string, [
 // Allow digits and letters in bind params;  additionally runes are
 // checked against underscores, meaning that bind params can have be
 // alphanumeric with underscores.  Mind the difference between unicode
-// digits and numbers, where '5' is a digit but '五' is not.
+// digits and numbers, where '5' is a digit but 'äº”' is not.
 var allowedBindRunes = []*unicode.RangeTable{unicode.Letter, unicode.Digit}
 
 // FIXME: this function isn't safe for unicode named params, as a failing test
@@ -279,8 +279,16 @@ func compileNamedQuery(qs []byte, bindType int) (query string, names []string, e
 			case NAMED:
 				rebound = append(rebound, ':')
 				rebound = append(rebound, name...)
+				/*
+				 SQL server specific changes.
+				 */
 			case QUESTION, UNKNOWN:
-				rebound = append(rebound, '?')
+				rebound = append(rebound, '@')
+				rebound = append(rebound, 'p')
+				for _, b := range strconv.Itoa(currentVar) {
+					rebound = append(rebound, byte(b))
+				}
+				currentVar++
 			case DOLLAR:
 				rebound = append(rebound, '$')
 				for _, b := range strconv.Itoa(currentVar) {
